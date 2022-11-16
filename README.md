@@ -1,2 +1,2 @@
 # Midsummer124.github.io
-我是一个大傻逼
+I'm an idiot.How cann't I finish such shit fuck.
