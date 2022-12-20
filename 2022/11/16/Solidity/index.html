@@ -16,8 +16,10 @@
 <meta property="og:description" content="Solidity学习笔记 这篇Blog我会持续update 这是本人第一篇blog，我真的非常开心能够拥有自己的blog，不说废话了，开始学习.   [toc]">
 <meta property="og:locale">
 <meta property="og:image" content="https://images.mirror-media.xyz/publication-images/HJC0UjkALdrL8a2BmAE2J.jpeg?height=300&width=388">
+<meta property="og:image" content="https://images.mirror-media.xyz/publication-images/VgMR533pA8WYtE5Lr65mQ.png?height=698&width=1860">
+<meta property="og:image" content="https://images.mirror-media.xyz/publication-images/JucQiWVixdlmJl6zHjCSI.png?height=702&width=1862">
 <meta property="article:published_time" content="2022-11-16T05:56:09.000Z">
-<meta property="article:modified_time" content="2022-11-26T08:43:21.283Z">
+<meta property="article:modified_time" content="2022-12-20T09:25:41.236Z">
 <meta property="article:author" content="Midsummer124">
 <meta property="article:tag" content="solidity smartcontract">
 <meta name="twitter:card" content="summary">
@@ -214,7 +216,7 @@
       <span class="post-meta-item-icon">
         <i class="fa fa-keyboard-o"></i>
         <span class="post-meta-item-text">  字数统计: </span>
-        <span class="post-count">4.4k字</span>
+        <span class="post-count">8.7k字</span>
       </span>
     </span>
 
@@ -223,7 +225,7 @@
       <span class="post-meta-item-icon">
         <i class="fa fa-hourglass-half"></i>
         <span class="post-meta-item-text">  阅读时长: </span>
-        <span class="post-count">17分</span>
+        <span class="post-count">34分</span>
       </span>
     </span>
 </div>
@@ -606,6 +608,276 @@
 <h3 id="发送ETH"><a href="#发送ETH" class="headerlink" title="发送ETH"></a>发送ETH</h3><blockquote>
 <p><code>Solidity</code>有三种方法向其他合约发送<code>ETH</code>，他们是：<code>transfer()</code>，<code>send()</code>和<code>call()</code>，其中<code>call()</code>是被鼓励的用法。</p>
 </blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"> contract ReceiveETH &#123;</span><br><span class="line">    // 收到eth事件，记录amount和gas</span><br><span class="line">    event Log(uint amount, uint gas);</span><br><span class="line">    </span><br><span class="line">    // receive方法，接收eth时被触发</span><br><span class="line">    receive() external payable&#123;</span><br><span class="line">        emit Log(msg.value, gasleft());</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 返回合约ETH余额</span><br><span class="line">    function getBalance() view public returns(uint) &#123;</span><br><span class="line">        return address(this).balance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>transfer</strong></p>
+<ul>
+<li>用法是<code>接收方地址.transfer(发送ETH数额)</code>。</li>
+<li><code>transfer()</code>的<code>gas</code>限制是<code>2300</code>，足够用于转账，但对方合约的<code>fallback()</code>或<code>receive()</code>函数不能实现太复杂的逻辑。</li>
+<li><code>transfer()</code>如果转账失败，会自动<code>revert</code>（回滚交易）。</li>
+</ul>
+<blockquote>
+<p>注意里面的<code>_to</code>填<code>ReceiveETH</code>合约的地址，<code>amount</code>是<code>ETH</code>转账金额：</p>
+</blockquote>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 用transfer()发送ETH</span><br><span class="line">function transferETH(address payable _to, uint256 amount) external payable&#123;</span><br><span class="line">    _to.transfer(amount);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>send</strong></p>
+<ul>
+<li>用法是<code>接收方地址.send(发送ETH数额)</code>。</li>
+<li><code>send()</code>的<code>gas</code>限制是<code>2300</code>，足够用于转账，但对方合约的<code>fallback()</code>或<code>receive()</code>函数不能实现太复杂的逻辑。</li>
+<li><code>send()</code>如果转账失败，不会<code>revert</code>。</li>
+<li><code>send()</code>的返回值是<code>bool</code>，代表着转账成功或失败，需要额外代码处理一下。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// send()发送ETH</span><br><span class="line">function sendETH(address payable _to, uint256 amount) external payable&#123;</span><br><span class="line">    // 处理下send的返回值，如果失败，revert交易并发送error</span><br><span class="line">    bool success = _to.send(amount);</span><br><span class="line">    if(!success)&#123;</span><br><span class="line">        revert SendFailed();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p><strong>call</strong></p>
+<ul>
+<li>用法是<code>接收方地址.call&#123;value: 发送ETH数额&#125;(&quot;&quot;)</code>。</li>
+<li><code>call()</code>没有<code>gas</code>限制，可以支持对方合约<code>fallback()</code>或<code>receive()</code>函数实现复杂逻辑。</li>
+<li><code>call()</code>如果转账失败，不会<code>revert</code>。</li>
+<li><code>call()</code>的返回值是<code>(bool, data)</code>，其中<code>bool</code>代表着转账成功或失败，需要额外代码处理一下。</li>
+</ul>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">// call()发送ETH</span><br><span class="line">function callETH(address payable _to, uint256 amount) external payable&#123;</span><br><span class="line">    // 处理下call的返回值，如果失败，revert交易并发送error</span><br><span class="line">    (bool success,) = _to.call&#123;value: amount&#125;(&quot;&quot;);</span><br><span class="line">    if(!success)&#123;</span><br><span class="line">        revert CallFailed();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<blockquote>
+<p><code>call</code>没有<code>gas</code>限制，最为灵活，是最提倡的方法；</p>
+</blockquote>
+<blockquote>
+<p><code>transfer</code>有<code>2300 gas</code>限制，但是发送失败会自动<code>revert</code>交易，是次优选择；</p>
+</blockquote>
+<blockquote>
+<p><code>send</code>有<code>2300 gas</code>限制，而且发送失败不会自动<code>revert</code>交易，几乎没有人用它。</p>
+</blockquote>
+<h3 id="调用其它合约"><a href="#调用其它合约" class="headerlink" title="调用其它合约"></a>调用其它合约</h3><p>我们可以利用合约的地址和合约代码（或接口）来创建合约的引用：<code>_Name(_Address)</code>，其中<code>_Name</code>是合约名，<code>_Address</code>是合约地址。然后用合约的引用来调用它的函数：<code>_Name(_Address).f()</code>，其中<code>f()</code>是要调用的函数。</p>
+<ol>
+<li><strong>传入合约地址</strong></li>
+</ol>
+<p>我们可以在函数里传入目标合约地址，生成目标合约的引用，然后调用目标函数。以调用<code>OtherContract</code>合约的<code>setX</code>函数为例，我们在新合约中写一个<code>callSetX</code>函数，传入已部署好的<code>OtherContract</code>合约地址<code>_Address</code>和<code>setX</code>的参数<code>x</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">function callSetX(address _Address, uint256 x) external&#123;</span><br><span class="line">        OtherContract(_Address).setX(x);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li><strong>传入合约变量</strong></li>
+</ol>
+<p>我们可以直接在函数里传入合约的引用，只需要把上面参数的<code>address</code>类型改为目标合约名，比如<code>OtherContract</code>。下面例子实现了调用目标合约的<code>getX()</code>函数。</p>
+<p><strong>注意</strong>该函数参数<code>OtherContract _Address</code>底层类型仍然是<code>address</code>，生成的<code>ABI</code>中、调用<code>callGetX</code>时传入的参数都是<code>address</code>类型</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">function callGetX(OtherContract _Address) external view returns(uint x)&#123;</span><br><span class="line">        x = _Address.getX();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li><strong>创建合约变量</strong></li>
+</ol>
+<p>我们可以创建合约变量，然后通过它来调用目标函数。下面例子，我们给变量<code>oc</code>存储了<code>OtherContract</code>合约的引用：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">function callGetX2(address _Address) external view returns(uint x)&#123;</span><br><span class="line">        OtherContract oc = OtherContract(_Address);</span><br><span class="line">        x = oc.getX();</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li><strong>调用合约并发送ETH</strong></li>
+</ol>
+<p>如果目标合约的函数是<code>payable</code>的，那么我们可以通过调用它来给合约转账：<code>_Name(_Address).f&#123;value: _Value&#125;()</code>，其中<code>_Name</code>是合约名，<code>_Address</code>是合约地址，<code>f</code>是目标函数名，<code>_Value</code>是要转的<code>ETH</code>数额（以<code>wei</code>为单位）。</p>
+<p><code>OtherContract</code>合约的<code>setX</code>函数是<code>payable</code>的，在下面这个例子中我们通过调用<code>setX</code>来往目标合约转账。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">function setXTransferETH(address otherContract, uint256 x) payable external&#123;</span><br><span class="line">        OtherContract(otherContract).setX&#123;value: msg.value&#125;(x);</span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="Call"><a href="#Call" class="headerlink" title="Call"></a>Call</h3><p><code>call</code> 是<code>address</code>类型的低级成员函数，它用来与其他合约交互。它的返回值为<code>(bool, data)</code>，分别对应<code>call</code>是否成功以及目标函数的返回值。</p>
+<ul>
+<li><code>call</code>是<code>solidity</code>官方推荐的通过触发<code>fallback</code>或<code>receive</code>函数发送<code>ETH</code>的方法。</li>
+<li>不推荐用<code>call</code>来调用另一个合约，因为当你调用不安全合约的函数时，你就把主动权交给了它。推荐的方法仍是声明合约变量后调用函数.</li>
+<li>当我们不知道对方合约的源代码或<code>ABI</code>，就没法生成合约变量；这时，我们仍可以通过<code>call</code>调用对方合约的函数。</li>
+</ul>
+<p><strong>rule</strong></p>
+<p><code>call</code>的使用规则如下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">目标合约地址.call(二进制编码);</span><br></pre></td></tr></table></figure>
+
+
+
+<p>其中<code>二进制编码</code>利用结构化编码函数<code>abi.encodeWithSignature</code>获得：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">abi.encodeWithSignature(&quot;函数签名&quot;, 逗号分隔的具体参数)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>函数签名</code>为<code>&quot;函数名（逗号分隔的参数类型)&quot;</code>。例如<code>abi.encodeWithSignature(&quot;f(uint256,address)&quot;, _x, _addr)</code>。</p>
+<p>另外<code>call</code>在调用合约时可以指定交易发送的<code>ETH</code>数额和<code>gas</code>：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">目标合约地址.call&#123;value:发送数额, gas:gas数额&#125;(二进制编码);</span><br></pre></td></tr></table></figure>
+
+
+
+<p>看起来有点复杂，下面我们举个<code>call</code>应用的例子。</p>
+<p><strong>利用call调用目标合约</strong></p>
+<ol>
+<li>Response事件</li>
+</ol>
+<p>我们写一个Call合约来调用目标合约函数。首先定义一个Response事件，输出call返回的success和data，方便我们观察返回值。</p>
+<p>&#x2F;&#x2F; 定义Response事件，输出call返回的结果success和data<br>event Response(bool success, bytes data);</p>
+<ol start="2">
+<li>调用setX函数</li>
+</ol>
+<p>我们定义callSetX函数来调用目标合约的setX()，转入msg.value数额的ETH，并释放Response事件输出success和data：</p>
+<p>function callSetX(address payable _addr, uint256 x) public payable {<br>    &#x2F;&#x2F; call setX()，同时可以发送ETH<br>    (bool success, bytes memory data) &#x3D; _addr.call{value: msg.value}(<br>        abi.encodeWithSignature(“setX(uint256)”, x)<br>    );</p>
+<pre><code>emit Response(success, data); //释放事件
+</code></pre>
+<p>}</p>
+<p>接下来我们调用callSetX把状态变量_x改为5，参数为OtherContract地址和5，由于目标函数setX()没有返回值，因此Response事件输出的data为0x，也就是空。</p>
+<ol start="3">
+<li>调用getX函数</li>
+</ol>
+<p>下面我们调用getX()函数，它将返回目标合约_x的值，类型为uint256。我们可以利用abi.decode来解码call的返回值data，并读出数值。</p>
+<p>function callGetX(address _addr) external returns(uint256){<br>    &#x2F;&#x2F; call getX()<br>    (bool success, bytes memory data) &#x3D; _addr.call(<br>        abi.encodeWithSignature(“getX()”)<br>    );</p>
+<pre><code>emit Response(success, data); //释放事件
+return abi.decode(data, (uint256));
+</code></pre>
+<p>}</p>
+<p>从Response事件的输出，我们可以看到data为0x0000000000000000000000000000000000000000000000000000000000000005。而经过abi.decode，最终返回值为5。</p>
+<p>. 调用不存在的函数</p>
+<p>如果我们给call输入的函数不存在于目标合约，那么目标合约的fallback函数会被触发。</p>
+<p>function callNonExist(address _addr) external{<br>    &#x2F;&#x2F; call getX()<br>    (bool success, bytes memory data) &#x3D; _addr.call(<br>        abi.encodeWithSignature(“foo(uint256)”)<br>    );</p>
+<pre><code>emit Response(success, data); //释放事件
+</code></pre>
+<p>}</p>
+<p>上面例子中，我们call了不存在的foo函数。call仍能执行成功，并返回success，但其实调用的目标合约fallback函数。</p>
+<h3 id="Delegatecall"><a href="#Delegatecall" class="headerlink" title="Delegatecall"></a>Delegatecall</h3><p>delegatecall与call类似，是solidity中地址类型的低级成员函数。delegate中是委托&#x2F;代表的意思，那么delegatecall委托了什么？</p>
+<p>当用户A通过合约B来call合约C的时候，执行的是合约C的函数，语境(Context，可以理解为包含变量和状态的环境)也是合约C的：msg.sender是B的地址，并且如果函数改变一些状态变量，产生的效果会作用于合约C的变量上。</p>
+<p><img src="https://images.mirror-media.xyz/publication-images/VgMR533pA8WYtE5Lr65mQ.png?height=698&width=1860"></p>
+<p>而当用户A通过合约B来delegatecall合约C的时候，执行的是合约C的函数，但是语境仍是合约B的：msg.sender是A的地址，并且如果函数改变一些状态变量，产生的效果会作用于合约B的变量上。</p>
+<p><img src="https://images.mirror-media.xyz/publication-images/JucQiWVixdlmJl6zHjCSI.png?height=702&width=1862"></p>
+<p>大家可以这样理解：一个富商把它的资产（状态变量）都交给一个VC代理（目标合约的函数）来打理。执行的是VC的函数，但是改变的是富商的状态。</p>
+<p>delegatecall语法和call类似，也是：</p>
+<p>目标合约地址.delegatecall(二进制编码);</p>
+<p>其中二进制编码利用结构化编码函数abi.encodeWithSignature获得：</p>
+<p>abi.encodeWithSignature(“函数签名”, 逗号分隔的具体参数)</p>
+<p>函数签名为”函数名（逗号分隔的参数类型)”。例如abi.encodeWithSignature(“f(uint256,address)”, _x, _addr)。</p>
+<p>和call不一样，delegatecall在调用合约时可以指定交易发送的gas，但不能指定发送的ETH数额</p>
+<p>注意：delegatecall有安全隐患，使用时要保证当前合约和目标合约的状态变量存储结构相同，并且目标合约安全，不然会造成资产损失。</p>
+<blockquote>
+<p>目前<code>delegatecall</code>主要有两个应用场景：</p>
+</blockquote>
+<ol>
+<li>代理合约（<code>Proxy Contract</code>）：将智能合约的存储合约和逻辑合约分开：代理合约（<code>Proxy Contract</code>）存储所有相关的变量，并且保存逻辑合约的地址；所有函数存在逻辑合约（<code>Logic Contract</code>）里，通过<code>delegatecall</code>执行。当升级时，只需要将代理合约指向新的逻辑合约即可。</li>
+<li>EIP-2535 Diamonds（钻石）：钻石是一个支持构建可在生产中扩展的模块化智能合约系统的标准。钻石是具有多个实施合同的代理合同。 更多信息请查看：<a target="_blank" rel="noopener" href="https://eip2535diamonds.substack.com/p/introduction-to-the-diamond-standard">钻石标准简介</a>。</li>
+</ol>
+<h3 id="在合约中创建新合约"><a href="#在合约中创建新合约" class="headerlink" title="在合约中创建新合约"></a>在合约中创建新合约</h3><p><strong>create和create2</strong></p>
+<p>有两种方法可以在合约中创建新合约，create和create2，这里我们讲create，下一讲会介绍create2。</p>
+<p>create的用法很简单，就是new一个合约，并传入新合约构造函数所需的参数：</p>
+<p>Contract x &#x3D; new Contract{value: _value}(params)</p>
+<p>其中Contract是要创建的合约名，x是合约对象（地址），如果构造函数是payable，可以创建时转入_value数量的ETH，params是新合约构造函数的参数。</p>
+<p><strong>极简uniswap</strong></p>
+<p><code>Uniswap V2</code><a target="_blank" rel="noopener" href="https://github.com/Uniswap/v2-core/tree/master/contracts">核心合约</a>中包含两个合约：</p>
+<ol>
+<li>UniswapV2Pair: 币对合约，用于管理币对地址、流动性、买卖。</li>
+<li>UniswapV2Factory: 工厂合约，用于创建新的币对，并管理币对地址。</li>
+</ol>
+<p>下面我们用<code>create</code>方法实现一个极简版的<code>Uniswap</code>：<code>Pair</code>币对合约负责管理币对地址，<code>PairFactory</code>工厂合约用于创建新的币对，并管理币对地址。</p>
+<h3 id="Create2"><a href="#Create2" class="headerlink" title="Create2"></a>Create2</h3><p>CREATE2</p>
+<p><code>CREATE2</code> 操作码使我们在智能合约部署在以太坊网络之前就能预测合约的地址。<code>Uniswap</code>创建<code>Pair</code>合约用的就是<code>CREATE2</code>而不是<code>CREATE</code>。这一讲，我将介绍<code>CREATE2</code>的用法</p>
+<p>CREATE如何计算地址</p>
+<p>智能合约可以由其他合约和普通账户利用<code>CREATE</code>操作码创建。 在这两种情况下，新合约的地址都以相同的方式计算：创建者的地址(通常为部署的钱包地址或者合约地址)和<code>nonce</code>(该地址发送交易的总数,对于合约账户是创建的合约总数,每创建一个合约nonce+1))的哈希。</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">新地址 = hash(创建者地址, nonce)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>创建者地址不会变，但<code>nonce</code>可能会随时间而改变，因此用<code>CREATE</code>创建的合约地址不好预测。</p>
+<p>CREATE2如何计算地址</p>
+<p><code>CREATE2</code>的目的是为了让合约地址独立于未来的事件。不管未来区块链上发生了什么，你都可以把合约部署在事先计算好的地址上。用<code>CREATE2</code>创建的合约地址由4个部分决定：</p>
+<ul>
+<li><code>0xFF</code>：一个常数，避免和<code>CREATE</code>冲突</li>
+<li>创建者地址</li>
+<li><code>salt</code>（盐）：一个创建者给定的数值</li>
+<li>待部署合约的字节码（<code>bytecode</code>）</li>
+</ul>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">新地址 = hash(&quot;0xFF&quot;,创建者地址, salt, bytecode)</span><br></pre></td></tr></table></figure>
+
+
+
+<p><code>CREATE2</code> 确保，如果创建者使用 <code>CREATE2</code> 和提供的 <code>salt</code> 部署给定的合约<code>bytecode</code>，它将存储在 <code>新地址</code> 中。</p>
+<p>如何使用<code>CREATE2</code></p>
+<p><code>CREATE2</code>的用法和之前讲的<code>Create</code>类似，同样是<code>new</code>一个合约，并传入新合约构造函数所需的参数，只不过要多传一个<code>salt</code>参数：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Contract x = new Contract&#123;salt: _salt, value: _value&#125;(params)</span><br></pre></td></tr></table></figure>
+
+
+
+<p>其中<code>Contract</code>是要创建的合约名，<code>x</code>是合约对象（地址），<code>_salt</code>是指定的盐；如果构造函数是<code>payable</code>，可以创建时转入<code>_value</code>数量的<code>ETH</code>，<code>params</code>是新合约构造函数的参数。</p>
+<h3 id="selfdestruct"><a href="#selfdestruct" class="headerlink" title="selfdestruct"></a>selfdestruct</h3><p>selfdestruct使用起来非常简单：</p>
+<p>selfdestruct(_addr)；</p>
+<p>其中_addr是接收合约中剩余ETH的地址。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">contract DeleteContract &#123;</span><br><span class="line"></span><br><span class="line">    uint public value = 10;</span><br><span class="line"></span><br><span class="line">    constructor() payable &#123;&#125;</span><br><span class="line"></span><br><span class="line">    receive() external payable &#123;&#125;</span><br><span class="line"></span><br><span class="line">    function deleteContract() external &#123;</span><br><span class="line">        // 调用selfdestruct销毁合约，并把剩余的ETH转给msg.sender</span><br><span class="line">        selfdestruct(payable(msg.sender));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function getBalance() external view returns(uint balance)&#123;</span><br><span class="line">        balance = address(this).balance;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在<code>DeleteContract</code>合约中，我们写了一个<code>public</code>状态变量<code>value</code>，两个函数：<code>getBalance()</code>用于获取合约<code>ETH</code>余额，<code>deleteContract()</code>用于自毁合约，并把<code>ETH</code>转入给发起人。</p>
+<p>部署好合约后，我们向<code>DeleteContract</code>合约转入1 <code>ETH</code>。这时，<code>getBalance()</code>会返回1 <code>ETH</code>，<code>value</code>变量是10。</p>
+<p>当我们调用<code>deleteContract()</code>函数，合约将自毁，所有变量都清空，此时<code>value</code>变为默认值<code>0</code>，<code>getBalance()</code>也返回空值。</p>
+<ol>
+<li>对外提供合约销毁接口时，最好设置为只有合约所有者可以调用，可以使用函数修饰符<code>onlyOwner</code>进行函数声明。</li>
+<li>当合约被销毁后与智能合约的交互也能成功，并且返回0。</li>
+<li>当合约中有<code>selfdestruct</code>功能时常常会带来安全问题和信任问题，合约中的Selfdestruct功能会为攻击者打开攻击向量(例如使用<code>selfdestruct</code>向一个合约频繁转入token进行攻击，这将大大节省了GAS的费用，虽然很少人这么做)，此外，此功能还会降低用户对合约的信心。</li>
+</ol>
+<h3 id="ABI编码"><a href="#ABI编码" class="headerlink" title="ABI编码"></a>ABI编码</h3><p>我们将用编码4个变量，他们的类型分别是uint256, address, string, uint256[2]：</p>
+<pre><code>uint x = 10;
+address addr = 0x7A58c0Be72BE218B41C608b7Fe7C5bB630736C71;
+string name = &quot;0xAA&quot;;
+uint[2] array = [5, 6]; 
+</code></pre>
+<p><strong>abi.encode</strong></p>
+<p>将给定参数利用ABI规则编码。ABI被设计出来跟智能合约交互，他将每个参数填充为32字节的数据，并拼接在一起。如果你要和合约交互，你要用的就是abi.encode。</p>
+<pre><code>function encode() public view returns(bytes memory result) &#123;
+    result = abi.encode(x, addr, name, array);
+&#125;
+</code></pre>
+<p>编码的结果为0x000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000007a58c0be72be218b41c608b7fe7c5bb630736c7100000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000005000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000043078414100000000000000000000000000000000000000000000000000000000，由于abi.encode将每个数据都填充为32字节，中间有很多0。</p>
+<h3 id="selector"><a href="#selector" class="headerlink" title="selector"></a>selector</h3><p>当我们调用智能合约时，本质上是向目标合约发送了一段<code>calldata</code>，在remix中发送一次交易后，可以在详细信息中看见<code>input</code>即为此次交易的<code>calldata</code></p>
+<p><strong>msg.data</strong></p>
+<p><code>msg.data</code>是<code>solidity</code>中的一个全局变量，值为完整的<code>calldata</code>（调用函数时传入的数据）。</p>
+<p>在下面的代码中，我们可以通过<code>Log</code>事件来输出调用<code>mint</code>函数的<code>calldata</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">// event 返回msg.data</span><br><span class="line">event Log(bytes data);</span><br><span class="line"></span><br><span class="line">function mint(address to) external&#123;</span><br><span class="line">    emit Log(msg.data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>当参数为<code>0x2c44b726ADF1963cA47Af88B284C06f30380fC78</code>时，输出的<code>calldata</code>为</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">0x6a6278420000000000000000000000002c44b726adf1963ca47af88b284c06f30380fc78</span><br></pre></td></tr></table></figure>
+
+
+
+<p>这段很乱的字节码可以分成两部分：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">前4个字节为函数选择器selector：</span><br><span class="line">0x6a627842</span><br><span class="line"></span><br><span class="line">后面32个字节为输入的参数：</span><br><span class="line">0x0000000000000000000000002c44b726adf1963ca47af88b284c06f30380fc78</span><br></pre></td></tr></table></figure>
+
+
+
+<p>其实<code>calldata</code>就是告诉智能合约，我要调用哪个函数，以及参数是什么。</p>
+<p><strong>method id, selector和函数签名</strong></p>
+<p>method id定义为函数签名的Keccak哈希后的前4个字节，当selector与method id相匹配时，即表示调用该函数，那么函数签名是什么？</p>
+<p>其实在第21讲中，我们简单介绍了函数签名，为”函数名（逗号分隔的参数类型)”。举个例子，上面代码中mint的函数签名为”mint(address)”。在同一个智能合约中，不同的函数有不同的函数签名，因此我们可以通过函数签名来确定要调用哪个函数。</p>
+<p>注意，在函数签名中，uint和int要写为uint256和int256。</p>
+<p>我们写一个函数，来验证mint函数的method id是否为0x6a627842。大家可以运行下面的函数，看看结果。</p>
+<pre><code>function mintSelector() external pure returns(bytes4 mSelector)&#123;
+    return bytes4(keccak256(&quot;mint(address)&quot;));
+&#125;
+</code></pre>
+<p>结果正是0x6a627842</p>
+<p><strong>使用selector</strong></p>
+<p>我们可以利用<code>selector</code>来调用目标函数。例如我想调用<code>mint</code>函数，我只需要利用<code>abi.encodeWithSelector</code>将<code>mint</code>函数的<code>method id</code>作为<code>selector</code>和参数打包编码，传给<code>call</code>函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">function callWithSignature() external returns(bool, bytes memory)&#123;</span><br><span class="line">    (bool success, bytes memory data) = address(this).call(abi.encodeWithSelector(0x6a627842, &quot;0x2c44b726ADF1963cA47Af88B284C06f30380fC78&quot;));</span><br><span class="line">    return(success, data);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="try-catch"><a href="#try-catch" class="headerlink" title="try-catch"></a>try-catch</h3><p>在solidity中，try-catch只能被用于external函数或创建合约时constructor（被视为external函数）的调用。基本语法如下：</p>
+<pre><code>    try externalContract.f() &#123;
+        // call成功的情况下 运行一些代码
+    &#125; catch &#123;
+        // call失败的情况下 运行一些代码
+    &#125;
+</code></pre>
+<p>其中externalContract.f()是某个外部合约的函数调用，try模块在调用成功的情况下运行，而catch模块则在调用失败时运行。</p>
+<p>同样可以使用this.f()来替代externalContract.f()，this.f()也被视作为外部调用，但不可在构造函数中使用，因为此时合约还未创建。</p>
+<p>如果调用的函数有返回值，那么必须在try之后声明returns(returnType val)，并且在try模块中可以使用返回的变量；如果是创建合约，那么返回值是新创建的合约变量。</p>
+<pre><code>    try externalContract.f() returns(returnType val)&#123;
+        // call成功的情况下 运行一些代码
+    &#125; catch &#123;
+        // call失败的情况下 运行一些代码
+    &#125;
+</code></pre>
+<p>另外，catch模块支持捕获特殊的异常原因：</p>
+<pre><code>    try externalContract.f() returns(returnType)&#123;
+        // call成功的情况下 运行一些代码
+    &#125; catch Error(string memory reason) &#123;
+        // 捕获失败的 revert() 和 require()
+    &#125; catch (bytes memory reason) &#123;
+        // 捕获失败的 assert()
+    &#125;
+</code></pre>
 
       
 
@@ -748,7 +1020,7 @@
                 </span>
                 <span class="tooltip-content">
                     <div class="toc-article">
-                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Solidity%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0"><span class="toc-number">1.</span> <span class="toc-text">Solidity学习笔记</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Solidity%E5%9F%BA%E7%A1%80"><span class="toc-number">1.1.</span> <span class="toc-text">Solidity基础</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.1.</span> <span class="toc-text">变量类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.2.</span> <span class="toc-text">函数类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E8%BE%93%E5%87%BA"><span class="toc-number">1.1.3.</span> <span class="toc-text">函数输出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E6%95%B0%E6%8D%AE%E5%82%A8%E5%AD%98%E5%92%8C%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="toc-number">1.1.4.</span> <span class="toc-text">变量数据储存和作用域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E5%92%8C%E6%95%B0%E6%8D%AE%E4%BD%8D%E7%BD%AE"><span class="toc-number">1.1.4.1.</span> <span class="toc-text">引用类型和数据位置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B5%8B%E5%80%BC%E8%A7%84%E5%88%99"><span class="toc-number">1.1.4.2.</span> <span class="toc-text">赋值规则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E7%9A%84%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="toc-number">1.1.4.3.</span> <span class="toc-text">变量的作用域</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F"><span class="toc-number">1.1.4.3.1.</span> <span class="toc-text">全局变量</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.5.</span> <span class="toc-text">引用类型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E7%BB%84"><span class="toc-number">1.1.5.1.</span> <span class="toc-text">数组</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E7%BB%84%E6%88%90%E5%91%98"><span class="toc-number">1.1.5.2.</span> <span class="toc-text">数组成员</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93"><span class="toc-number">1.1.5.3.</span> <span class="toc-text">结构体</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%98%A0%E5%B0%84"><span class="toc-number">1.1.6.</span> <span class="toc-text">映射</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Rule"><span class="toc-number">1.1.6.1.</span> <span class="toc-text">Rule</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.6.2.</span> <span class="toc-text">原理</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E5%88%9D%E5%A7%8B%E5%80%BC"><span class="toc-number">1.1.7.</span> <span class="toc-text">变量初始值</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%80%BC%E7%B1%BB%E5%9E%8B%E5%88%9D%E5%A7%8B%E5%80%BC"><span class="toc-number">1.1.7.1.</span> <span class="toc-text">值类型初始值</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#immutable"><span class="toc-number">1.1.7.2.</span> <span class="toc-text">immutable</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E6%B5%81"><span class="toc-number">1.1.8.</span> <span class="toc-text">控制流</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E4%BF%AE%E9%A5%B0%E5%99%A8"><span class="toc-number">1.1.9.</span> <span class="toc-text">构造函数和修饰器</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="toc-number">1.1.9.1.</span> <span class="toc-text">构造函数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%AE%E9%A5%B0%E5%99%A8"><span class="toc-number">1.1.9.2.</span> <span class="toc-text">修饰器</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.1.10.</span> <span class="toc-text">事件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.</span> <span class="toc-text">继承</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.1.</span> <span class="toc-text">函数的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%AE%E9%A5%B0%E5%99%A8%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.2.</span> <span class="toc-text">修饰器的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.3.</span> <span class="toc-text">构造函数的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B0%83%E7%94%A8%E7%88%B6%E5%90%88%E7%BA%A6%E7%9A%84%E5%87%BD%E6%95%B0"><span class="toc-number">1.1.11.4.</span> <span class="toc-text">调用父合约的函数</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%BD%E8%B1%A1%E5%90%88%E7%BA%A6"><span class="toc-number">1.1.12.</span> <span class="toc-text">抽象合约</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%82%E5%B8%B8"><span class="toc-number">1.1.13.</span> <span class="toc-text">异常</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#error"><span class="toc-number">1.1.13.1.</span> <span class="toc-text">error</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#require"><span class="toc-number">1.1.13.2.</span> <span class="toc-text">require</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#assert"><span class="toc-number">1.1.13.3.</span> <span class="toc-text">assert</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Solidity%E8%BF%9B%E9%98%B6"><span class="toc-number">1.2.</span> <span class="toc-text">Solidity进阶</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E9%87%8D%E8%BD%BD"><span class="toc-number">1.2.1.</span> <span class="toc-text">函数重载</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9E%E5%8F%82%E5%8C%B9%E9%85%8D"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">实参匹配</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%93%E5%87%BD%E6%95%B0"><span class="toc-number">1.2.2.</span> <span class="toc-text">库函数</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%BA%93%E5%87%BD%E6%95%B0"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">使用库函数</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#import"><span class="toc-number">1.2.3.</span> <span class="toc-text">import</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A5%E5%8F%97ETH%E5%92%8Cfallback%E5%9B%9E%E8%B0%83"><span class="toc-number">1.2.4.</span> <span class="toc-text">接受ETH和fallback回调</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#receive"><span class="toc-number">1.2.4.1.</span> <span class="toc-text">receive</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#fallback"><span class="toc-number">1.2.4.2.</span> <span class="toc-text">fallback</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B7%AE%E5%88%AB%E8%A7%A6%E5%8F%91%E8%A7%84%E5%88%99"><span class="toc-number">1.2.4.3.</span> <span class="toc-text">差别触发规则</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%91%E9%80%81ETH"><span class="toc-number">1.2.5.</span> <span class="toc-text">发送ETH</span></a></li></ol></li></ol></li></ol>
+                    <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Solidity%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0"><span class="toc-number">1.</span> <span class="toc-text">Solidity学习笔记</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Solidity%E5%9F%BA%E7%A1%80"><span class="toc-number">1.1.</span> <span class="toc-text">Solidity基础</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.1.</span> <span class="toc-text">变量类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.2.</span> <span class="toc-text">函数类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E8%BE%93%E5%87%BA"><span class="toc-number">1.1.3.</span> <span class="toc-text">函数输出</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E6%95%B0%E6%8D%AE%E5%82%A8%E5%AD%98%E5%92%8C%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="toc-number">1.1.4.</span> <span class="toc-text">变量数据储存和作用域</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B%E5%92%8C%E6%95%B0%E6%8D%AE%E4%BD%8D%E7%BD%AE"><span class="toc-number">1.1.4.1.</span> <span class="toc-text">引用类型和数据位置</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B5%8B%E5%80%BC%E8%A7%84%E5%88%99"><span class="toc-number">1.1.4.2.</span> <span class="toc-text">赋值规则</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E7%9A%84%E4%BD%9C%E7%94%A8%E5%9F%9F"><span class="toc-number">1.1.4.3.</span> <span class="toc-text">变量的作用域</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E5%85%A8%E5%B1%80%E5%8F%98%E9%87%8F"><span class="toc-number">1.1.4.3.1.</span> <span class="toc-text">全局变量</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%95%E7%94%A8%E7%B1%BB%E5%9E%8B"><span class="toc-number">1.1.5.</span> <span class="toc-text">引用类型</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E7%BB%84"><span class="toc-number">1.1.5.1.</span> <span class="toc-text">数组</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E7%BB%84%E6%88%90%E5%91%98"><span class="toc-number">1.1.5.2.</span> <span class="toc-text">数组成员</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E7%BB%93%E6%9E%84%E4%BD%93"><span class="toc-number">1.1.5.3.</span> <span class="toc-text">结构体</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%98%A0%E5%B0%84"><span class="toc-number">1.1.6.</span> <span class="toc-text">映射</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Rule"><span class="toc-number">1.1.6.1.</span> <span class="toc-text">Rule</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">1.1.6.2.</span> <span class="toc-text">原理</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%98%E9%87%8F%E5%88%9D%E5%A7%8B%E5%80%BC"><span class="toc-number">1.1.7.</span> <span class="toc-text">变量初始值</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%80%BC%E7%B1%BB%E5%9E%8B%E5%88%9D%E5%A7%8B%E5%80%BC"><span class="toc-number">1.1.7.1.</span> <span class="toc-text">值类型初始值</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#immutable"><span class="toc-number">1.1.7.2.</span> <span class="toc-text">immutable</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A7%E5%88%B6%E6%B5%81"><span class="toc-number">1.1.8.</span> <span class="toc-text">控制流</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E5%92%8C%E4%BF%AE%E9%A5%B0%E5%99%A8"><span class="toc-number">1.1.9.</span> <span class="toc-text">构造函数和修饰器</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0"><span class="toc-number">1.1.9.1.</span> <span class="toc-text">构造函数</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%AE%E9%A5%B0%E5%99%A8"><span class="toc-number">1.1.9.2.</span> <span class="toc-text">修饰器</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8B%E4%BB%B6"><span class="toc-number">1.1.10.</span> <span class="toc-text">事件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.</span> <span class="toc-text">继承</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.1.</span> <span class="toc-text">函数的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BF%AE%E9%A5%B0%E5%99%A8%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.2.</span> <span class="toc-text">修饰器的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E7%9A%84%E7%BB%A7%E6%89%BF"><span class="toc-number">1.1.11.3.</span> <span class="toc-text">构造函数的继承</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%B0%83%E7%94%A8%E7%88%B6%E5%90%88%E7%BA%A6%E7%9A%84%E5%87%BD%E6%95%B0"><span class="toc-number">1.1.11.4.</span> <span class="toc-text">调用父合约的函数</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8A%BD%E8%B1%A1%E5%90%88%E7%BA%A6"><span class="toc-number">1.1.12.</span> <span class="toc-text">抽象合约</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%82%E5%B8%B8"><span class="toc-number">1.1.13.</span> <span class="toc-text">异常</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#error"><span class="toc-number">1.1.13.1.</span> <span class="toc-text">error</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#require"><span class="toc-number">1.1.13.2.</span> <span class="toc-text">require</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#assert"><span class="toc-number">1.1.13.3.</span> <span class="toc-text">assert</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Solidity%E8%BF%9B%E9%98%B6"><span class="toc-number">1.2.</span> <span class="toc-text">Solidity进阶</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%87%BD%E6%95%B0%E9%87%8D%E8%BD%BD"><span class="toc-number">1.2.1.</span> <span class="toc-text">函数重载</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9E%E5%8F%82%E5%8C%B9%E9%85%8D"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">实参匹配</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%93%E5%87%BD%E6%95%B0"><span class="toc-number">1.2.2.</span> <span class="toc-text">库函数</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%BD%BF%E7%94%A8%E5%BA%93%E5%87%BD%E6%95%B0"><span class="toc-number">1.2.2.1.</span> <span class="toc-text">使用库函数</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#import"><span class="toc-number">1.2.3.</span> <span class="toc-text">import</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A5%E5%8F%97ETH%E5%92%8Cfallback%E5%9B%9E%E8%B0%83"><span class="toc-number">1.2.4.</span> <span class="toc-text">接受ETH和fallback回调</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#receive"><span class="toc-number">1.2.4.1.</span> <span class="toc-text">receive</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#fallback"><span class="toc-number">1.2.4.2.</span> <span class="toc-text">fallback</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B7%AE%E5%88%AB%E8%A7%A6%E5%8F%91%E8%A7%84%E5%88%99"><span class="toc-number">1.2.4.3.</span> <span class="toc-text">差别触发规则</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%91%E9%80%81ETH"><span class="toc-number">1.2.5.</span> <span class="toc-text">发送ETH</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%B0%83%E7%94%A8%E5%85%B6%E5%AE%83%E5%90%88%E7%BA%A6"><span class="toc-number">1.2.6.</span> <span class="toc-text">调用其它合约</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Call"><span class="toc-number">1.2.7.</span> <span class="toc-text">Call</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Delegatecall"><span class="toc-number">1.2.8.</span> <span class="toc-text">Delegatecall</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9C%A8%E5%90%88%E7%BA%A6%E4%B8%AD%E5%88%9B%E5%BB%BA%E6%96%B0%E5%90%88%E7%BA%A6"><span class="toc-number">1.2.9.</span> <span class="toc-text">在合约中创建新合约</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Create2"><span class="toc-number">1.2.10.</span> <span class="toc-text">Create2</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#selfdestruct"><span class="toc-number">1.2.11.</span> <span class="toc-text">selfdestruct</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ABI%E7%BC%96%E7%A0%81"><span class="toc-number">1.2.12.</span> <span class="toc-text">ABI编码</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#selector"><span class="toc-number">1.2.13.</span> <span class="toc-text">selector</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#try-catch"><span class="toc-number">1.2.14.</span> <span class="toc-text">try-catch</span></a></li></ol></li></ol></li></ol>
                     </div>
                 </span>
             </div>
